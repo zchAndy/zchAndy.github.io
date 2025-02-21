@@ -1,0 +1,49 @@
+name: Deploy Hugo Site to GitHub Pages
+
+on:
+  push:
+    branches: [ "main" ]  # 只在main分支推送时触发
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: "pages"  # 防止并发部署冲突
+      cancel-in-progress: true  # 自动取消队列中的旧部署
+
+    steps:
+      # 步骤1：检出代码（包含主题子模块）
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive  # 关键！确保加载主题子模块
+          fetch-depth: 0  # 获取完整提交历史
+
+      # 步骤2：安装指定版本的Hugo
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2
+        with:
+          hugo-version: "0.144.2"  # 必须与你本地版本一致
+          extended: true  # 必须启用扩展版
+
+      # 步骤3：构建静态网站
+      - name: Build
+        run: |
+          # 清理旧构建文件
+          rm -rf public
+          # 带环境变量的构建命令
+          hugo \
+            --minify \  # 压缩输出
+            --cleanDestinationDir \  # 清理目标目录
+            --environment production  # 生产环境构建
+
+      # 步骤4：部署到GitHub Pages
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          keep_files: false  # 每次部署前清空旧文件
+          force_orphan: true  # 强制单分支部署
+          user_name: "zchAndy"
+          user_email: "826725978@qq.com"
